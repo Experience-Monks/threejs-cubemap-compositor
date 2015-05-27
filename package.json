@@ -14,7 +14,7 @@
     "lodash.clonedeep": "^3.0.1",
     "lodash.defaults": "^3.1.1",
     "signals": "^1.0.0",
-    "threejs-cubemap-painter": "^1.0.0",
+    "threejs-cubemap-painter": "^3.0.0",
     "threejs-hittest": "^3.1.0"
   },
   "devDependencies": {
