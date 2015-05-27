@@ -1,0 +1,42 @@
+{
+  "name": "threejs-cubemap-compositor",
+  "version": "1.0.0",
+  "description": "A composable collection of cubemap compositing nodes.",
+  "main": "index.js",
+  "license": "MIT",
+  "author": {
+    "name": "Tomasz Dysinski",
+    "email": "oz@bunnybones.com",
+    "url": "https://github.com/bunnybones1"
+  },
+  "dependencies": {
+    "input-unified-pointers": "^2.2.1",
+    "lodash.clonedeep": "^3.0.1",
+    "lodash.defaults": "^3.1.1",
+    "signals": "^1.0.0",
+    "threejs-cubemap-painter": "^1.0.0",
+    "threejs-hittest": "^3.1.0"
+  },
+  "devDependencies": {
+    "dat-gui-keyboard-helper": "^1.0.1",
+    "three": "^0.69.0",
+    "threejs-camera-controller-first-person-desktop": "^5.0.1",
+    "threejs-checkerroom": "^1.0.0",
+    "threejs-managed-view": "^4.0.3"
+  },
+  "scripts": {
+    "test": "beefy test.js --live --open"
+  },
+  "keywords": [
+    "threejs",
+    "cubemap"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Jam3/threejs-cubemap-compositor.git"
+  },
+  "homepage": "https://github.com/Jam3/threejs-cubemap-compositor",
+  "bugs": {
+    "url": "https://github.com/Jam3/threejs-cubemap-compositor/issues"
+  }
+}
