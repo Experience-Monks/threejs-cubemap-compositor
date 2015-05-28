@@ -25,6 +25,9 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	this.changeSignal = changeSignal;
 
 
+	var fullWidth = 100;
+	var fullHeight = 100;
+
 	var cubeMapNodeInputCamera = new CubeMapNodeInputCamera(renderer, scene);
 	// var cubeMapNodeInputFiles = new CubeMapNodeInputFiles(renderer, 'assets/file.png');
 	// var cubeMapNodeInputFileRectilinearPano = new CubeMapNodeInputFileRectilinearPano(renderer, 'assets/tarmac.jpg');
@@ -195,11 +198,16 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 		};
 	}
 
+	function updateScreenSize(w, h) {
+		fullWidth = w;
+		fullHeight = h;
+	}
+
 	function updateScreenDot(x, y, id) {
 		lastX = x;
 		lastY = y;
-		x = (x / window.innerWidth) * 2 - 1;
-		y = (y / window.innerHeight) * 2 - 1;
+		x = (x / fullWidth) * 2 - 1;
+		y = (y / fullHeight) * 2 - 1;
 		var hits = hitTest(x, y, camera, meshes);
 		if (hits.length > 0)
 		{
@@ -231,6 +239,11 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	this.meshes = meshes;
 	this.displayMaterials = displayMaterials;
 	this.processQueue = processQueue;
+
+	updateScreenSize(window.innerWidth, window.innerHeight);
+	this.updateScreenSize = updateScreenSize.bind(this);
+
+	this.datGui = datGui;
 
 	controls.paintBaseline();
 
