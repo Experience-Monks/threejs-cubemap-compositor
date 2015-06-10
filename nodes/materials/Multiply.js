@@ -5,6 +5,7 @@ var clonedeep = require('lodash.clonedeep');
 var uniforms = {
 	"cubeMap": { type: "t", value: null },
 	"cubeMap2": { type: "t", value: null },
+	"offset": { type: "f", value: 1 },
 	"strength": { type: "f", value: 2 },
 	"flipX": { type: "f", value: - 1 }
 }
@@ -30,6 +31,7 @@ var fragmentShader = [
 
 	"uniform samplerCube cubeMap;",
 	"uniform samplerCube cubeMap2;",
+	"uniform float offset;",
 	"uniform float strength;",
 	"uniform float flipX;",
 
@@ -39,7 +41,7 @@ var fragmentShader = [
 
 	"void main() {",
 
-	"	gl_FragColor = textureCube( cubeMap, vec3( flipX * vWorldPosition.x, vWorldPosition.yz ) ) * (1.0 + strength * textureCube( cubeMap2, vec3( flipX * vWorldPosition.x, vWorldPosition.yz ) ));",
+	"	gl_FragColor = textureCube( cubeMap, vec3( flipX * vWorldPosition.x, vWorldPosition.yz ) ) * (offset + strength * textureCube( cubeMap2, vec3( flipX * vWorldPosition.x, vWorldPosition.yz ) ));",
 
 		THREE.ShaderChunk[ "logdepthbuf_fragment" ],
 

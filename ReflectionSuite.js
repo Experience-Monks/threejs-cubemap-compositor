@@ -12,7 +12,8 @@ var CubeMapNodeSub = require('./nodes/Sub');
 var CubeMapNodeMultiply = require('./nodes/Multiply');
 var CubeMapNodeMultiplyScalar = require('./nodes/MultiplyScalar');
 var CubeMapNodeSaturation = require('./nodes/Saturation');
-var CubeMapNodeMultisampleMinimaxVariedStrength = require('./nodes/SuperMultisampleMinimumVariedStrength');
+var CubeMapNodeSuperMultisampleBlur = require('./nodes/SuperMultisampleBlur');
+var CubeMapNodeMultisampleMinimaxVariedStrength = require('./nodes/SuperMultisampleMinimaxVariedStrength');
 var config = require('./config');
 // var FpsController = require('threejs-camera-controller-first-person-desktop');
 config.textureType = THREE.FloatType;
@@ -35,25 +36,57 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	var cubeMapNodeInput = cubeMapNodeInputCamera;
 
 	var cubeMapNodePainterBaseline = new CubeMapNodePainter(renderer, pointers, camera);
-	var cubeMapNodePainterLight = new CubeMapNodePainter(renderer, pointers, camera);
+	var cubeMapNodePainterPhysicalLight = new CubeMapNodePainter(renderer, pointers, camera);
+	var cubeMapNodePainterExtraLight = new CubeMapNodePainter(renderer, pointers, camera);
+	var cubeMapNodePainterLightMask = new CubeMapNodePainter(renderer, pointers, camera);
 
 	var cubeMapNodeInputCameraCursorBaseline = new CubeMapNodeInputCamera(renderer, cubeMapNodePainterBaseline.brushScene);
 	var cubeMapNodeCombineCursorBaseline = new CubeMapNodeCombine(renderer, cubeMapNodePainterBaseline, cubeMapNodeInputCameraCursorBaseline);
 
-	var cubeMapNodeInputCameraCursorLight = new CubeMapNodeInputCamera(renderer, cubeMapNodePainterLight.brushScene);
-	var cubeMapNodeCombineCursorLight = new CubeMapNodeCombine(renderer, cubeMapNodePainterLight, cubeMapNodeInputCameraCursorLight);
+	var cubeMapNodeInputCameraCursorPhysicalLight = new CubeMapNodeInputCamera(renderer, cubeMapNodePainterPhysicalLight.brushScene);
+	var cubeMapNodeCombineCursorPhysicalLight = new CubeMapNodeCombine(renderer, cubeMapNodePainterPhysicalLight, cubeMapNodeInputCameraCursorPhysicalLight);
+
+	var cubeMapNodeInputCameraCursorExtraLight = new CubeMapNodeInputCamera(renderer, cubeMapNodePainterExtraLight.brushScene);
+	var cubeMapNodeCombineCursorExtraLight = new CubeMapNodeCombine(renderer, cubeMapNodePainterExtraLight, cubeMapNodeInputCameraCursorExtraLight);
+
+	var cubeMapNodeInputCameraCursorLightMask = new CubeMapNodeInputCamera(renderer, cubeMapNodePainterLightMask.brushScene);
+	var cubeMapNodeCombineCursorLightMask = new CubeMapNodeCombine(renderer, cubeMapNodePainterLightMask, cubeMapNodeInputCameraCursorLightMask);
 
 	scene.add(cubeMapNodeInputCamera.camera);
 	cubeMapNodeInputCamera.camera.position.y = 1;
 
 	var cubeMapBaseline = new CubeMapNodeMultisampleMinimaxVariedStrength(renderer, cubeMapNodeInput, cubeMapNodeCombineCursorBaseline, 0.5);
-	var cubeMapNodeSub = new CubeMapNodeSub(renderer, cubeMapNodeInput, cubeMapBaseline);
-	var cubeMapNodeMultiply = new CubeMapNodeMultiply(renderer, cubeMapNodeSub, cubeMapNodeCombineCursorLight, 20);
-	var cubeMapNodeSaturation = new CubeMapNodeSaturation(renderer, cubeMapNodeMultiply, 0.5);
-	var cubeMapNodeAdd = new CubeMapNodeAdd(renderer, cubeMapBaseline, cubeMapNodeSaturation);
-	var cubeMapNodeFinalExposure = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeAdd, 0.5);
+	var cubeMapNodeBaseLineSaturation = new CubeMapNodeSaturation(renderer, cubeMapBaseline, 0.5);
+	var cubeMapNodeLightDetails = new CubeMapNodeSub(renderer, cubeMapNodeInput, cubeMapNodeBaseLineSaturation);
+	
+	var cubeMapNodePhysicalLight = new CubeMapNodeMultiply(renderer, cubeMapNodeLightDetails, cubeMapNodeCombineCursorPhysicalLight, 20);
+	var cubeMapNodePhysicalLightSaturation = new CubeMapNodeSaturation(renderer, cubeMapNodePhysicalLight, 0.5);
+	var cubeMapNodePhysicalLightComposite = new CubeMapNodeAdd(renderer, cubeMapNodeBaseLineSaturation, cubeMapNodePhysicalLightSaturation);
 
-	cubeMapNodeInputCamera.update();
+	var cubeMapNodeCombineCursorGlamourizedLight = new CubeMapNodeAdd(renderer, cubeMapNodeCombineCursorPhysicalLight, cubeMapNodeCombineCursorExtraLight);
+	var cubeMapNodeGlamourizedLight = new CubeMapNodeMultiply(renderer, cubeMapNodeLightDetails, cubeMapNodeCombineCursorGlamourizedLight, 20);
+	var cubeMapNodeGlamourizedLightSaturation = new CubeMapNodeSaturation(renderer, cubeMapNodeGlamourizedLight, 0.5);
+	var cubeMapNodeGlamourizedLightComposite = new CubeMapNodeAdd(renderer, cubeMapNodeBaseLineSaturation, cubeMapNodeGlamourizedLightSaturation);
+
+	var cubeMapNodeMaskedPhysicalLight = new CubeMapNodeMultiply(renderer, cubeMapNodePhysicalLightComposite, cubeMapNodeCombineCursorLightMask, 0.5, 0.1);
+	var cubeMapNodeBlurredALittle = new CubeMapNodeSuperMultisampleBlur(renderer, cubeMapNodeMaskedPhysicalLight, 0.01, 2);
+	var cubeMapNodeBlurred = new CubeMapNodeSuperMultisampleBlur(renderer, cubeMapNodeGlamourizedLightComposite, 0.5, 4);
+	var cubeMapNodeBlurredALot = new CubeMapNodeSuperMultisampleBlur(renderer, cubeMapNodeGlamourizedLightComposite, 0.9, 5);
+
+	var cubeMapNodeMaskedExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeMaskedPhysicalLight, 0.5);
+	var cubeMapNodeBlurredALittleExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurredALittle, 0.5);
+	var cubeMapNodeBlurredExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurred, 0.5);
+	var cubeMapNodeBlurredALotExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurredALot, 0.5);
+
+	var inputPrerenderSignal = new Signal();
+	var inputPostrenderSignal = new Signal();
+	function updateInput() {
+		addToQueue(function() {
+			inputPrerenderSignal.dispatch();
+			cubeMapNodeInputCamera.update();
+			inputPostrenderSignal.dispatch();
+		})
+	}
 
 	var displayMaterials = [];
 
@@ -63,6 +96,7 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 		brightness: 0.51,
 		transparency: 0.51,
 		exposure: 0.11,
+		presaturation: 0.85,
 		saturation: 0.51,
 		fullness: 0.51,
 		alphaGammaPower: 0.51
@@ -74,36 +108,68 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	function updateColor() {
 		var bright = Math.pow(editable.brightness, 3) * 40;
 		cubeMapNodePainterBaseline.brushMesh.material.uniforms.color.value.setRGB(bright, bright, bright);
-		cubeMapNodePainterLight.brushMesh.material.uniforms.color.value.setRGB(bright, bright, bright);
+		cubeMapNodePainterPhysicalLight.brushMesh.material.uniforms.color.value.setRGB(bright, bright, bright);
+		cubeMapNodePainterExtraLight.brushMesh.material.uniforms.color.value.setRGB(bright, bright, bright);
+		cubeMapNodePainterLightMask.brushMesh.material.uniforms.color.value.setRGB(bright, bright, bright);
 		// updateScreenDot(lastX, lastY);
 	}
 
 	function updateBrushSize() {
 		cubeMapNodePainterBaseline.brushMesh.material.uniforms.fullness.value = editable.fullness;
-		cubeMapNodePainterLight.brushMesh.material.uniforms.fullness.value = editable.fullness;
+		cubeMapNodePainterPhysicalLight.brushMesh.material.uniforms.fullness.value = editable.fullness;
+		cubeMapNodePainterExtraLight.brushMesh.material.uniforms.fullness.value = editable.fullness;
+		cubeMapNodePainterLightMask.brushMesh.material.uniforms.fullness.value = editable.fullness;
 		// updateScreenDot(lastX, lastY);
 	}
 
 	function updateBrushFalloff() {
 		cubeMapNodePainterBaseline.brushMesh.material.uniforms.alphaGammaPower.value = editable.alphaGammaPower;
-		cubeMapNodePainterLight.brushMesh.material.uniforms.alphaGammaPower.value = editable.alphaGammaPower;
+		cubeMapNodePainterPhysicalLight.brushMesh.material.uniforms.alphaGammaPower.value = editable.alphaGammaPower;
+		cubeMapNodePainterExtraLight.brushMesh.material.uniforms.alphaGammaPower.value = editable.alphaGammaPower;
+		cubeMapNodePainterLightMask.brushMesh.material.uniforms.alphaGammaPower.value = editable.alphaGammaPower;
 		// updateScreenDot(lastX, lastY);
-	}
-
-	function updateExposure() {
-		cubeMapNodeFinalExposure.material.uniforms.scalar.value = editable.exposure;
-		addToQueue(cubeMapNodeFinalExposure.update);
-	}
-
-	function updateSaturation() {
-		cubeMapNodeSaturation.material.uniforms.saturation.value = editable.saturation;
-		addToQueue(cubeMapNodeSaturation.update);
 	}
 
 	function updateTransparency() {
 		cubeMapNodePainterBaseline.brushMesh.material.uniforms.alphaCenter.value = editable.transparency;
-		cubeMapNodePainterLight.brushMesh.material.uniforms.alphaCenter.value = editable.transparency;
+		cubeMapNodePainterPhysicalLight.brushMesh.material.uniforms.alphaCenter.value = editable.transparency;
+		cubeMapNodePainterExtraLight.brushMesh.material.uniforms.alphaCenter.value = editable.transparency;
+		cubeMapNodePainterLightMask.brushMesh.material.uniforms.alphaCenter.value = editable.transparency;
 		// updateScreenDot(lastX, lastY);
+	}
+
+	function updateExposure() {
+		cubeMapNodeBlurredALittleExposed.material.uniforms.scalar.value = editable.exposure;
+		cubeMapNodeBlurredExposed.material.uniforms.scalar.value = editable.exposure;
+		cubeMapNodeBlurredALotExposed.material.uniforms.scalar.value = editable.exposure;
+		addToQueue(cubeMapNodeBlurredALittleExposed.update);
+		addToQueue(cubeMapNodeBlurredExposed.update);
+		addToQueue(cubeMapNodeBlurredALotExposed.update);
+	}
+
+	function updatePresaturation() {
+		cubeMapNodeBaseLineSaturation.material.uniforms.saturation.value = editable.presaturation;
+		addToQueue(cubeMapNodeBaseLineSaturation.update);
+	}
+
+	function updateSaturation() {
+		cubeMapNodePhysicalLightSaturation.material.uniforms.saturation.value = editable.saturation;
+		addToQueue(cubeMapNodePhysicalLightSaturation.update);
+	}
+
+	function updateBlurALittle() {
+		cubeMapNodeBlurred.material.uniforms.blurStrength.value = editable.blurStrength;
+		addToQueue(cubeMapNodeBlurred.update);
+	}
+
+	function updateBlur() {
+		cubeMapNodeBlurred.material.uniforms.blurStrength.value = editable.blurStrength;
+		addToQueue(cubeMapNodeBlurred.update);
+	}
+
+	function updateBlurALot() {
+		cubeMapNodeBlurred.material.uniforms.blurStrength.value = editable.blurStrength;
+		addToQueue(cubeMapNodeBlurred.update);
 	}
 
 	function setDisplayCubeMap(texture) {
@@ -113,44 +179,90 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 		displayCubeMapSignal.dispatch(texture);
 	}
 
+	var painters = [
+		cubeMapNodePainterBaseline,
+		cubeMapNodePainterPhysicalLight,
+		cubeMapNodePainterExtraLight,
+		cubeMapNodePainterLightMask
+	];
+
+	function setPainter(desiredPainter) {
+		painters.forEach(function(painter) {
+			painter.setState(painter === desiredPainter);
+		});
+		changeSignal.dispatch();
+	}
+
+	function isShiftDown() {
+		return datGui.keyboard.isPressed('shift');
+	}
+
 	var controls = {
-		previewFinal: function() {
-			setDisplayCubeMap(cubeMapNodeFinalExposure.texture);
-			controls.paintLight();
-		},
 		previewOriginal: function() {
 			setDisplayCubeMap(cubeMapNodeInput.texture);
 			changeSignal.dispatch();
 		},
+
 		previewBaseline: function() {
-			setDisplayCubeMap(cubeMapBaseline.texture);
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapBaseline.texture);
 			controls.paintBaseline();
 		},
 		previewDataBaseLine: function() {
-			setDisplayCubeMap(cubeMapNodeCombineCursorBaseline.texture);
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodeCombineCursorBaseline.texture);
 			controls.paintBaseline();
 		},
-		previewCursorBaseLine: function() {
-			setDisplayCubeMap(cubeMapNodePainterBaseline.texture);
-			controls.paintBaseline();
+
+		previewDataPhysicalLight: function() {
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodeCombineCursorPhysicalLight.texture);
+			controls.paintPhysicalLight();
 		},
-		previewDataLight: function() {
-			setDisplayCubeMap(cubeMapNodeCombineCursorLight.texture);
-			controls.paintLight();
+		previewPhysicalLight: function() {
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodePhysicalLight.texture);
+			controls.paintPhysicalLight();
 		},
-		previewLight: function() {
-			setDisplayCubeMap(cubeMapNodeMultiply.texture);
-			controls.paintLight();
+
+		previewDataGlamourizedLight: function() {
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodeCombineCursorGlamourizedLight.texture);
+			controls.paintExtraLight();
 		},
+		previewGlamourizedLight: function() {
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodeGlamourizedLight.texture);
+			controls.paintExtraLight();
+		},
+
+		previewDataLightMask: function() {
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodeCombineCursorLightMask.texture);
+			controls.paintLightMask();
+		},
+		previewLightMask: function() {
+			if(!isShiftDown()) setDisplayCubeMap(cubeMapNodeMaskedExposed.texture);
+			controls.paintLightMask();
+		},
+
+		previewBlurALittle: function() {
+			setDisplayCubeMap(cubeMapNodeBlurredALittleExposed.texture);
+			changeSignal.dispatch();
+		},
+		previewBlur: function() {
+			setDisplayCubeMap(cubeMapNodeBlurredExposed.texture);
+			changeSignal.dispatch();
+		},
+		previewBlurALot: function() {
+			setDisplayCubeMap(cubeMapNodeBlurredALotExposed.texture);
+			changeSignal.dispatch();
+		},
+
 		paintBaseline: function() {
-			cubeMapNodePainterBaseline.setState(true);
-			cubeMapNodePainterLight.setState(false);
-			changeSignal.dispatch();
+			setPainter(cubeMapNodePainterBaseline);
 		},
-		paintLight: function() {
-			cubeMapNodePainterBaseline.setState(false);
-			cubeMapNodePainterLight.setState(true);
-			changeSignal.dispatch();
+		paintPhysicalLight: function() {
+			setPainter(cubeMapNodePainterPhysicalLight);
+		},
+		paintExtraLight: function() {
+			setPainter(cubeMapNodePainterExtraLight);
+		},
+		paintLightMask: function() {
+			setPainter(cubeMapNodePainterLightMask);
 		},
 		toggleMeshVisibility: function() {
 			if(meshes.length == 0) return;
@@ -163,19 +275,62 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 
 	}
 
-	datGui.addButton(controls, 'paintBaseline', 'Z', '✍ baseline');
-	datGui.addButton(controls, 'paintLight', 'X', '✍ light');
+	var previewData = {
+		original: controls.previewOriginal,
+		baseline: [controls.previewBaseline, controls.previewDataBaseLine],
+		'p light': [controls.previewPhysicalLight, controls.previewDataPhysicalLight],
+		'e light': [controls.previewGlamourizedLight, controls.previewDataGlamourizedLight],
+		mask: [controls.previewLightMask, controls.previewDataLightMask],
+		blur1: controls.previewBlurALittle,
+		blur2: controls.previewBlur,
+		blur3: controls.previewBlurALot,
+	};
+
+	var previewCallbacks = {};
+
+	var lastCallbackName = '';
+
+	var previewDataKeys = Object.keys(previewData);
+	previewDataKeys.forEach(function(key, i) {
+		if(i > 9) console.warn('Too many for number keys. No keyboard shortbut assigned!', key);
+		var params = previewData[key];
+		var type = typeof params;
+		var buttonCallback;
+		var icon;
+		switch(type) {
+			case 'function':
+				buttonCallback = function(name) {
+					params();
+					lastCallbackName = name;
+				}.bind(null, key)
+				icon = '→';
+				break;
+			case 'object':
+				if(params instanceof Array) {
+					buttonCallback = function(name) {
+						if(lastCallbackName === name) {
+							whichCallbackIndex++;
+						} else {
+							whichCallbackIndex = 0;
+						}
+						previewData[name][whichCallbackIndex%previewData[name].length]();
+						lastCallbackName = name;
+					}.bind(null, key);
+					icon = '⇉';
+				}
+				break;
+		}
+		if(buttonCallback === undefined) debugger;
+		previewCallbacks[key] = buttonCallback;
+		var num = (i + 1) % 10;
+		datGui.addButton(previewCallbacks, key, num.toString(), icon+key);
+	})
+
 	datGui.addSlider(editable, 'fullness', updateBrushSize, 'R', 'F', 0.01, '✏︎ size', 0, 1 );
 	datGui.addSlider(editable, 'transparency', updateTransparency, 'T', 'G', 0.01, '✏︎ opac', 0, 1 );
 	datGui.addSlider(editable, 'brightness', updateColor, 'U', 'J', 0.01, '✏︎ brght', 0, 1 );
 	datGui.addSlider(editable, 'alphaGammaPower', updateBrushFalloff, 'M', 'N', 0.01, '✏︎ fall', 0.01, 3.01 );
-	datGui.addButton(controls, 'previewOriginal', '1', '☉ original');
-	datGui.addButton(controls, 'previewDataBaseLine', '2', '☉ basedat');
-	datGui.addButton(controls, 'previewBaseline', '3', '☉ baseline');
-	datGui.addButton(controls, 'previewDataLight', '4', '☉ lightdat');
-	datGui.addButton(controls, 'previewLight', '5', '☉ light');
-	datGui.addButton(controls, 'previewFinal', '6', '☉ final');
-	datGui.addButton(controls, 'previewCursorBaseLine', '7', '☉ cursor');
+	datGui.addSlider(editable, 'presaturation', updatePresaturation, 'B', 'V', 0.01, '☼ presat', 0, 2 );
 	datGui.addSlider(editable, 'saturation', updateSaturation, 'I', 'K', 0.01, '☼ sat', 0, 2 );
 	datGui.addSlider(editable, 'exposure', updateExposure, 'O', 'L', 0.01, '☼ expos', 0, 1 );
 	datGui.addButton(controls, 'toggleMeshVisibility', '0', '☯ toggl');
@@ -189,7 +344,9 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 
 	function processQueue() {
 		cubeMapNodePainterBaseline.processQueue();
-		cubeMapNodePainterLight.processQueue();
+		cubeMapNodePainterPhysicalLight.processQueue();
+		cubeMapNodePainterExtraLight.processQueue();
+		cubeMapNodePainterLightMask.processQueue();
 		for (var i = 0; i < queue.length; i++) {
 			queue[i]();
 		}
@@ -212,18 +369,30 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 		if (hits.length > 0)
 		{
 			cubeMapNodePainterBaseline.brushMesh.visible = true;
-			cubeMapNodePainterLight.brushMesh.visible = true;
+			cubeMapNodePainterPhysicalLight.brushMesh.visible = true;
+			cubeMapNodePainterExtraLight.brushMesh.visible = true;
+			cubeMapNodePainterLightMask.brushMesh.visible = true;
 			if(cubeMapNodePainterBaseline.isActive()) addToQueue(cubeMapNodeInputCameraCursorBaseline.update);
-			if(cubeMapNodePainterLight.isActive()) addToQueue(cubeMapNodeInputCameraCursorLight.update);
+			if(cubeMapNodePainterPhysicalLight.isActive()) addToQueue(cubeMapNodeInputCameraCursorPhysicalLight.update);
+			if(cubeMapNodePainterExtraLight.isActive()) addToQueue(cubeMapNodeInputCameraCursorExtraLight.update);
+			if(cubeMapNodePainterLightMask.isActive()) addToQueue(cubeMapNodeInputCameraCursorLightMask.update);
 			changeSignal.dispatch();
 		} else {
 			if(cubeMapNodePainterBaseline.brushMesh.visible) {
 				cubeMapNodePainterBaseline.brushMesh.visible = false;
 				addToQueue(cubeMapNodeInputCameraCursorBaseline.update);
 			}
-			if(cubeMapNodePainterLight.brushMesh.visible) {
-				cubeMapNodePainterLight.brushMesh.visible = false;
-				addToQueue(cubeMapNodeInputCameraCursorLight.update);
+			if(cubeMapNodePainterPhysicalLight.brushMesh.visible) {
+				cubeMapNodePainterPhysicalLight.brushMesh.visible = false;
+				addToQueue(cubeMapNodeInputCameraCursorPhysicalLight.update);
+			}
+			if(cubeMapNodePainterExtraLight.brushMesh.visible) {
+				cubeMapNodePainterExtraLight.brushMesh.visible = false;
+				addToQueue(cubeMapNodeInputCameraCursorExtraLight.update);
+			}
+			if(cubeMapNodePainterLightMask.brushMesh.visible) {
+				cubeMapNodePainterLightMask.brushMesh.visible = false;
+				addToQueue(cubeMapNodeInputCameraCursorLightMask.update);
 			}
 		}
 	}
@@ -231,14 +400,24 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	pointers.onPointerMoveSignal.add(updateScreenDot);
 
 	this.cubeMapNodePainterBaseline = cubeMapNodePainterBaseline;
-	this.cubeMapNodePainterLight = cubeMapNodePainterLight;
+	this.cubeMapNodePainterPhysicalLight = cubeMapNodePainterPhysicalLight;
+	this.cubeMapNodePainterExtraLight = cubeMapNodePainterExtraLight;
+	this.cubeMapNodePainterLightMask = cubeMapNodePainterLightMask;
+
+	this.cubeMapNodeMaskedExposed = cubeMapNodeMaskedExposed;
+	this.cubeMapNodeBlurredALittleExposed = cubeMapNodeBlurredALittleExposed;
+	this.cubeMapNodeBlurredExposed = cubeMapNodeBlurredExposed;
+	this.cubeMapNodeBlurredALotExposed = cubeMapNodeBlurredALotExposed;
 
 	this.cubeMapNodeInput = cubeMapNodeInput;
-	this.cubeMapNodeFinalExposure = cubeMapNodeFinalExposure;
+
+	this.inputPrerenderSignal = inputPrerenderSignal;
+	this.inputPostrenderSignal = inputPostrenderSignal;
 
 	this.meshes = meshes;
 	this.displayMaterials = displayMaterials;
 	this.processQueue = processQueue;
+	this.updateInput = updateInput;
 
 	updateScreenSize(window.innerWidth, window.innerHeight);
 	this.updateScreenSize = updateScreenSize.bind(this);
@@ -252,6 +431,7 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	updateBrushFalloff();
 	updateTransparency();
 	updateExposure();
+	updatePresaturation();
 	updateSaturation();
 
 }
@@ -259,7 +439,9 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 ReflectionSuite.prototype.addMesh = function(mesh) {
 	this.meshes.push(mesh);
 	this.cubeMapNodePainterBaseline.addMesh(mesh);
-	this.cubeMapNodePainterLight.addMesh(mesh);
+	this.cubeMapNodePainterPhysicalLight.addMesh(mesh);
+	this.cubeMapNodePainterExtraLight.addMesh(mesh);
+	this.cubeMapNodePainterLightMask.addMesh(mesh);
 };
 
 ReflectionSuite.prototype.addMaterial = function(material) {

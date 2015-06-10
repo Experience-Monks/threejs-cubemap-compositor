@@ -1,10 +1,10 @@
 var Signal = require('signals').Signal;
 var config = require('../config');
 
-function CubeMapNodeBase(renderer, material, format, type) {
+function CubeMapNodeOther(renderer, material, outputNode, format, type) {
 	type = type || config.textureType;
 	this.renderer = renderer;
-	var camera = new THREE.CubeCamera(0.1, 2, 256, type, format);
+	var camera = outputNode.camera;
 	var scene = new THREE.Scene();
 	var cubeGeomtry = new THREE.BoxGeometry(1, 1, 1, 1, 1, 1);
 	var cube = new THREE.Mesh(cubeGeomtry, material);
@@ -19,14 +19,10 @@ function CubeMapNodeBase(renderer, material, format, type) {
 	this.updateSignal = new Signal();
 
 	this.update = this.update.bind(this);
-
-	this.automaticUpdate = true;
 }
-
-CubeMapNodeBase.prototype.update = function(force) {
-	if(!this.automaticUpdate && !force) return;
+CubeMapNodeOther.prototype.update = function() {
 	this.camera.updateCubeMap(this.renderer, this.scene);
 	this.updateSignal.dispatch();
 }
 
-module.exports = CubeMapNodeBase;
+module.exports = CubeMapNodeOther;

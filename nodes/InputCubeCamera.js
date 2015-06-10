@@ -2,7 +2,7 @@ var Signal = require('signals').Signal;
 var config = require('../config');
 function CubeMapNodeCamera(renderer, cubeMap) {
 	this.renderer = renderer;
-	this.texture = cubeMap;
+	this.texture = cubeMap.texture ? cubeMap.texture : cubeMap;
 	this.updateSignal = new Signal();
 	this.update = this.update.bind(this);
 }

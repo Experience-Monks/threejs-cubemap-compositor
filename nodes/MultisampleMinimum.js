@@ -1,4 +1,4 @@
-var CubeMapMultisampleMinimumMaterial = require('./materials/MultisampleMinimumVariedStrength');
+var CubeMapMultisampleMinimumMaterial = require('./materials/MultisampleMinimum');
 var BaseNodeOne = require('./BaseOne');
 
 function CubeMapNodeMultisampleMinimum(renderer, input, blurStrength) {

@@ -1,6 +1,8 @@
 var Signal = require('signals').Signal;
 
 function CubeMapNodeBaseOut(input) {
+	if(input === undefined) throw new Error("You must provide a valid input.");
+	
 	this.updateSignal = new Signal();
 
 	this.update = this.update.bind(this);

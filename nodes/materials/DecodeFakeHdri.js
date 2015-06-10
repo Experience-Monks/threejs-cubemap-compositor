@@ -40,23 +40,15 @@ var fragmentShader = [
 
 		THREE.ShaderChunk[ "logdepthbuf_fragment" ],
 
-	'	float fhdri_brightness = ceil(min(255.0, max(gl_FragColor.r, max(gl_FragColor.g, max(gl_FragColor.b, 1.0)))));',
-	'	if(fhdri_brightness > 1.0) {',
-	'		gl_FragColor.rgb /= fhdri_brightness;',
-	'	}',
-	// '	gl_FragColor.rgb = clamp(gl_FragColor.rgb, 0.0, 0.99);',
-	'	gl_FragColor.a = 1.0 - ((fhdri_brightness - 1.0) / 255.0);',
-	// '	gl_FragColor.a = 1.0;',
-	// '	gl_FragColor.rgb = vec3(fhdri_brightness / 255.0);',
+	"	gl_FragColor.rgb *= (1.0 - gl_FragColor.a) * 255.0 + 1.0;",
 
-	// (floor(dot(l, n) * 4.0) + 1.0)/4.0;
-
+	"	gl_FragColor.a = 1.0;",
 
 	"}"
 
 ].join("\n");
 
-function CubeMapEncodeFakeHdriMaterial(params) {
+function CubeMapDecodeFakeHdriMaterial(params) {
 	params = params || {};
 	defaults(params, {
 		vertexShader: vertexShader,
@@ -68,6 +60,6 @@ function CubeMapEncodeFakeHdriMaterial(params) {
 
 }
 
-CubeMapEncodeFakeHdriMaterial.prototype = Object.create(BaseOneMaterial.prototype);
+CubeMapDecodeFakeHdriMaterial.prototype = Object.create(BaseOneMaterial.prototype);
 
-module.exports = CubeMapEncodeFakeHdriMaterial;
+module.exports = CubeMapDecodeFakeHdriMaterial;

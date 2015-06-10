@@ -17,9 +17,9 @@ function CubeMapNodePainter(renderer, pointers, painterCamera) {
 		var autoClearColor = renderer.autoClearColor;
 		var autoClearDepth = renderer.autoClearDepth;
 		var autoClearStencil = renderer.autoClearStencil;
-		renderer.autoClear = false;
+		renderer.autoClear = true;
 		renderer.autoClearColor = false;
-		renderer.autoClearDepth = false;
+		renderer.autoClearDepth = true;
 		renderer.autoClearStencil = false;
 		oldUpdate(renderer, scene);
 		renderer.autoClear = autoClear;
@@ -31,6 +31,7 @@ function CubeMapNodePainter(renderer, pointers, painterCamera) {
 	painter.cubeMapCamera.updateCubeMap = newUpdate.bind(painter.cubeMapCamera);
 	this.updateSignal = updateSignal;
 
+	this.camera = painter.cubeMapCamera;
 	this.texture = texture;
 	this.addMesh = painter.addMesh.bind(painter);
 	this.setState = painter.setState.bind(painter);
