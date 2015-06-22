@@ -18,7 +18,7 @@
     "threejs-hittest": "^3.1.0"
   },
   "devDependencies": {
-    "awesome-streetview": "^1.0.0",
+    "awesome-streetview": "^1.1.2",
     "budo": "^4.0.0",
     "dat-gui-keyboard-helper": "^1.0.1",
     "garnish": "^2.1.3",
