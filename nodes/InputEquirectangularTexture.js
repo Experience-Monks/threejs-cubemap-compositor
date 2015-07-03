@@ -1,7 +1,8 @@
 var Signal = require('signals').Signal;
 var config = require('../config');
 
-function CubeMapNodeEquirectangularTexture (renderer, texture) {
+function CubeMapNodeEquirectangularTexture (renderer, texture, opt) {
+  opt = opt || {};
   this.renderer = renderer;
   this.update = this.update.bind(this);
 
@@ -16,7 +17,10 @@ function CubeMapNodeEquirectangularTexture (renderer, texture) {
     side: THREE.DoubleSide
   });
   var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-  scene.add(sphere)
+  if (opt.flipX) {
+    sphere.scale.x *= -1;
+  }
+  scene.add(sphere);
 
   this._sphereMaterial = sphereMaterial
   this.updateSignal = updateSignal;
