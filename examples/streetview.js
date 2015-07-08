@@ -80,10 +80,10 @@ panorama(location, function (err, result) {
       var renderer = app.renderer
       var input = new InputTexture(renderer, texture)
       var graph = new StaticReflectionGraph(renderer, input, {
-        baseline: 'panosphere-baseLine.png',
-        physicalLight: 'panosphere-physicalLight.png',
-        extraLight: 'panosphere-extraLight.png',
-        lightMask: 'panosphere-lightMask.png'
+        baseline: 'tarmac-baseLine.png',
+        physicalLight: 'tarmac-physicalLight.png',
+        extraLight: 'tarmac-extraLight.png',
+        lightMask: 'tarmac-lightMask.png'
       })
 
       var blur = graph.outputs[0]
