@@ -41,11 +41,12 @@ function StaticReflectionGraph (renderer, input, options) {
   var cubeMapNodeBlurredALittle = new CubeMapNodeSuperMultisampleBlur(renderer, cubeMapNodeMaskedPhysicalLight, 0.01, 2);
   var cubeMapNodeBlurred = new CubeMapNodeSuperMultisampleBlur(renderer, cubeMapNodeGlamourizedLightComposite, 0.5, 4);
   var cubeMapNodeBlurredALot = new CubeMapNodeSuperMultisampleBlur(renderer, cubeMapNodeGlamourizedLightComposite, 0.9, 5);
-
-  var cubeMapNodeMaskedExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeMaskedPhysicalLight, 0.5);
-  var cubeMapNodeBlurredALittleExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurredALittle, 0.5);
-  var cubeMapNodeBlurredExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurred, 0.5);
-  var cubeMapNodeBlurredALotExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurredALot, 0.5);
+  
+  var finalStrength = 0.4; // should be 0.5 with a good map
+  var cubeMapNodeMaskedExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeMaskedPhysicalLight, finalStrength);
+  var cubeMapNodeBlurredALittleExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurredALittle, finalStrength);
+  var cubeMapNodeBlurredExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurred, finalStrength);
+  var cubeMapNodeBlurredALotExposed = new CubeMapNodeMultiplyScalar(renderer, cubeMapNodeBlurredALot, finalStrength);
 
   this.mask = cubeMapNodeMaskedExposed;
   this.outputs = [ 
