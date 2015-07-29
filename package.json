@@ -1,6 +1,6 @@
 {
   "name": "threejs-cubemap-compositor",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A composable collection of cubemap compositing nodes.",
   "main": "index.js",
   "license": "MIT",
