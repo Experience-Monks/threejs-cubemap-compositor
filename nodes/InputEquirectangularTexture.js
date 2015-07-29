@@ -17,6 +17,7 @@ function CubeMapNodeEquirectangularTexture (renderer, texture, opt) {
     side: THREE.DoubleSide
   });
   var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  opt.flipX = opt.flipX === false ? false : true;
   if (opt.flipX) {
     sphere.scale.x *= -1;
   }
