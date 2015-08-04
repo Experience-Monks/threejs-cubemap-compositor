@@ -2,6 +2,7 @@ THREE = require('three');
 var View = require('threejs-managed-view').View;
 var Pointers = require('input-unified-pointers');
 var CheckerRoom = require('threejs-checkerroom');
+var CubeMapNodeInputCamera = require('./nodes/InputCamera');
 var ReflectionSuite = require('./ReflectionSuite');
 
 var view = new View({
@@ -53,7 +54,10 @@ scene.add(lightMesh);
 var light = new THREE.AmbientLight(0x7f7f7f);
 scene.add(light);
 
-var reflectionSuite = new ReflectionSuite(view.renderer, view.camera, scene, pointers);
+var cubeMapNodeInputCamera = new CubeMapNodeInputCamera(view.renderer, scene);
+var reflectionSuite = new ReflectionSuite(view.renderer, view.camera, cubeMapNodeInputCamera, pointers);
+scene.add(cubeMapNodeInputCamera.camera);
+cubeMapNodeInputCamera.camera.position.y = 1;
 
 var sphereMaterial = new THREE.MeshBasicMaterial({
 	color: 0,

@@ -18,7 +18,7 @@ var config = require('./config');
 // var FpsController = require('threejs-camera-controller-first-person-desktop');
 config.textureType = THREE.FloatType;
 
-function ReflectionSuite(renderer, camera, scene, pointers) {
+function ReflectionSuite(renderer, camera, cubeMapNodeInput, pointers) {
 	var displayCubeMapSignal = new Signal();
 	this.displayCubeMapSignal = displayCubeMapSignal;
 
@@ -29,11 +29,9 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	var fullWidth = 100;
 	var fullHeight = 100;
 
-	var cubeMapNodeInputCamera = new CubeMapNodeInputCamera(renderer, scene);
 	// var cubeMapNodeInputFiles = new CubeMapNodeInputFiles(renderer, 'assets/file.png');
 	// var cubeMapNodeInputFileRectilinearPano = new CubeMapNodeInputFileRectilinearPano(renderer, 'assets/tarmac.jpg');
 	// var cubeMapNodeInput = cubeMapNodeInputFileRectilinearPano;
-	var cubeMapNodeInput = cubeMapNodeInputCamera;
 
 	var cubeMapNodePainterBaseline = new CubeMapNodePainter(renderer, pointers, camera);
 	var cubeMapNodePainterPhysicalLight = new CubeMapNodePainter(renderer, pointers, camera);
@@ -51,9 +49,6 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 
 	var cubeMapNodeInputCameraCursorLightMask = new CubeMapNodeInputCamera(renderer, cubeMapNodePainterLightMask.brushScene);
 	var cubeMapNodeCombineCursorLightMask = new CubeMapNodeCombine(renderer, cubeMapNodePainterLightMask, cubeMapNodeInputCameraCursorLightMask);
-
-	scene.add(cubeMapNodeInputCamera.camera);
-	cubeMapNodeInputCamera.camera.position.y = 1;
 
 	var cubeMapBaseline = new CubeMapNodeMultisampleMinimaxVariedStrength(renderer, cubeMapNodeInput, cubeMapNodeCombineCursorBaseline, 0.5);
 	var cubeMapNodeBaseLineSaturation = new CubeMapNodeSaturation(renderer, cubeMapBaseline, 0.5);
@@ -83,7 +78,7 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	function updateInput() {
 		addToQueue(function() {
 			inputPrerenderSignal.dispatch();
-			cubeMapNodeInputCamera.update();
+			cubeMapNodeInput.update();
 			inputPostrenderSignal.dispatch();
 		})
 	}
@@ -433,6 +428,14 @@ function ReflectionSuite(renderer, camera, scene, pointers) {
 	updateExposure();
 	updatePresaturation();
 	updateSaturation();
+
+	this.input = cubeMapNodeInput;
+	this.mask = cubeMapNodeMaskedExposed;
+	this.outputs = [
+		cubeMapNodeBlurredALittleExposed,
+		cubeMapNodeBlurredExposed,
+		cubeMapNodeBlurredALotExposed
+	];
 
 }
 
